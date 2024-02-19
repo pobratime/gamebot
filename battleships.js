@@ -1,80 +1,114 @@
 // battleships.js
 
-const icons = require('./icnos');
-
 class BattleshipGame {
     constructor() {
         this.dimension = 10;
-        this.board = [];
-        this.boat = icons.boat;
-        this.empty = icons.empty;
-        this.destroyed = icons.destroyed;
-        this.unknown = icons.unknown;
-        this.ships = 5; // Number of ships in the game
-        this.shipsRemaining = this.ships;
+        this.playerBoard = [];
+        this.botBoard = [];
+        this.playerBoatsRemaining = 5;
+        this.botBoatsRemaining = 5;
+        this.isPlayerTurn = true;
     }
 
-    startGame() {
+    init() {
+        this.createBoard(this.playerBoard);
+        this.createBoard(this.botBoard);
+    }
+
+    createBoard(board) {
         for (let i = 0; i < this.dimension; i++) {
-            this.board[i] = new Array(this.dimension).fill(this.empty);
-        }
-
-        // Place ships on the board
-        for (let i = 0; i < this.ships; i++) {
-            this.placeShip();
+            board[i] = [];
+            for (let j = 0; j < this.dimension; j++) {
+                board[i][j] = { status: 'empty' };
+            }
         }
     }
 
-    placeShip() {
-        // Place a ship on a random position
-        const row = Math.floor(Math.random() * this.dimension);
-        const col = Math.floor(Math.random() * this.dimension);
+    placePlayerBoat(row, col) {
+        if (row < 0 || row >= this.dimension || col < 0 || col >= this.dimension) {
+            return false; // Invalid row or column
+        }
 
-        // Check if the chosen position is already occupied by a ship
-        if (this.board[row][col] === this.empty) {
-            this.board[row][col] = this.boat;
-        } else {
-            // Try placing the ship again if the position is occupied
-            this.placeShip();
+        if (this.playerBoard[row][col].status === 'empty') {
+            this.playerBoard[row][col].status = 'boat';
+            this.playerBoatsRemaining--;
+            return true;
+        }
+
+        return false; // Position already occupied by a boat
+    }
+
+
+    botPlaceBoatsRandomly() {
+        for (let i = 0; i < this.botBoatsRemaining; i++) {
+            let row, col;
+            do {
+                row = Math.floor(Math.random() * this.dimension);
+                col = Math.floor(Math.random() * this.dimension);
+            } while (row < 0 || row >= this.dimension || col < 0 || col >= this.dimension || this.botBoard[row][col].status === 'boat');
+
+            this.botBoard[row][col].status = 'boat';
         }
     }
 
-    makeMove(row, col) {
-        if (this.board[row][col] === this.boat) {
-            // Player hit a ship
-            this.board[row][col] = this.destroyed;
-            this.shipsRemaining--;
 
-            if (this.shipsRemaining === 0) {
-                // All ships destroyed, player wins
+    makePlayerMove(row, col) {
+        if (row < 0 || row >= this.dimension || col < 0 || col >= this.dimension) {
+            return 'Invalid move. Try again.'; // Invalid row or column
+        }
+
+        if (this.botBoard[row][col].status === 'boat') {
+            this.botBoard[row][col].status = 'hit';
+            this.botBoatsRemaining--;
+
+            if (this.botBoatsRemaining === 0) {
                 return 'You sank all the battleships! You win!';
             } else {
                 return 'Hit! There are still ships remaining.';
             }
-        } else if (this.board[row][col] === this.empty) {
-            // Player missed
-            this.board[row][col] = this.unknown;
+        } else if (this.botBoard[row][col].status === 'empty') {
+            this.botBoard[row][col].status = 'miss';
             return 'Miss! Try again.';
         } else {
-            // Player hit the same position again, prompt them to try again
             return 'You already hit this position. Try a different one.';
         }
     }
 
+
+    makeBotMove() {
+        let row, col;
+        do {
+            row = Math.floor(Math.random() * this.dimension);
+            col = Math.floor(Math.random() * this.dimension);
+        } while (row < 0 || row >= this.dimension || col < 0 || col >= this.dimension);
+
+        if (this.playerBoard[row][col].status === 'boat') {
+            this.playerBoard[row][col].status = 'hit';
+            this.playerBoatsRemaining--;
+
+            if (this.playerBoatsRemaining === 0) {
+                return 'Game over. Bot sank all your battleships!';
+            } else {
+                return 'Bot hit! Your turn.';
+            }
+        } else if (this.playerBoard[row][col].status === 'empty') {
+            this.playerBoard[row][col].status = 'miss';
+            return 'Bot missed. Your turn.';
+        } else {
+            return 'Bot hit the same position again. It will try a different one.';
+        }
+    }
+
+
     getStatus() {
-        // Return the current status of the game
-        return `Ships remaining: ${this.shipsRemaining}\n${this.formatGameBoard()}`;
+        return `Your boats remaining: ${this.playerBoatsRemaining}\n${this.formatGameBoard(this.playerBoard)}\n\n` +
+            `Bot has this many boats remaining: ${this.botBoatsRemaining}\n${this.formatGameBoard(this.botBoard)}`;
     }
 
-    formatGameBoard() {
-        const header = '  | ' + Array.from({ length: this.dimension }, (_, i) => i).join(' | ') + ' |';
-        const separator = '|---' + Array.from({ length: this.dimension }, () => '---').join('') + '|';
-
-        const rows = this.board.map((row, index) => ` ${index} | ${row.join(' | ')} |`);
-
-        return `${header}\n${separator}\n${rows.join('\n')}`;
+    formatGameBoard(board) {
+        return board.map(row => row.map(cell => (cell.status === 'boat' || cell.status === 'hit') ? 'X' : (cell.status === 'miss') ? 'O' : '.').join(' ')).join('\n');
     }
+
 }
 
 module.exports = BattleshipGame;
-
