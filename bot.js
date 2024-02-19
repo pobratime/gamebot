@@ -3,7 +3,7 @@
 const { Telegraf } = require('telegraf');
 const BattleshipGame = require('./battleships');
 
-const botToken = '6834768804:AAEncSvNRBXVr_w8uT7g5QwbgEe0Cvaf2Qw';
+const botToken = 'secret_code';
 const bot = new Telegraf(botToken);
 
 const game = new BattleshipGame();
